@@ -15,22 +15,20 @@ end
 signature HASH_TABLE =
 sig
   structure Key : HASH_KEY
-  type hashTable
-  val new : unit -> hashTable
-  val put : hashTable -> Key.t -> string -> unit
-  val get : hashTable -> Key.t -> string option
-  val del : hashTable -> Key.t -> unit
+  type 'a hashTable
+  val new : unit -> 'a hashTable
+  val put : 'a hashTable -> Key.t -> 'a -> unit
+  val get : 'a hashTable -> Key.t -> 'a option
+  val del : 'a hashTable -> Key.t -> unit
 end
 
-(* hash table implemented using an array of lists *)
-(*structure HashTable :> HASH_TABLE =*)
 functor HashTable(K : HASH_KEY) :> HASH_TABLE where type Key.t = K.t =
 struct
   structure Key : HASH_KEY = K
-  type kvPair = Key.t * string
-  type bucket = kvPair list
+  type 'a kvPair = Key.t * 'a
+  type 'a bucket = 'a kvPair list
 
-  type hashTable = (bucket ref) Array.array
+  type 'a hashTable = 'a bucket ref Array.array
 
   val size = 173
   fun hash k = (Key.hash k) mod size
