@@ -42,12 +42,12 @@ struct
   type 'a kvPair = K.t * 'a
   type 'a bucket = 'a kvPair list
 
-  type 'a hashTable = 'a bucket ref Array.array
+  type 'a hashTable = 'a bucket Array.array
 
   val size = 173
   fun hash k = (K.hash k) mod size
 
-  fun new () = Array.array (size, ref [])
+  fun new () = Array.array (size, [])
 
   fun searchBucket [] _ = NONE
     | searchBucket ((k', v')::rest) k = if K.equal k k'
@@ -57,7 +57,7 @@ struct
   fun get ht k = let 
         val bucket = Array.sub (ht, hash k)
       in
-        case searchBucket (!bucket) k of 
+        case searchBucket bucket k of 
                SOME(_, v) => SOME v
              | NONE => NONE
       end
@@ -65,17 +65,17 @@ struct
   fun del ht k = let 
         val i = hash k
         val bucket = Array.sub (ht, i)
-        val without = List.filter (fn (k', _) => not (K.equal k k')) (!bucket)
+        val without = List.filter (fn (k', _) => not (K.equal k k')) bucket
       in
-        Array.update (ht, i, ref without)
+        Array.update (ht, i, without)
       end
 
   fun put ht k v = (del ht k; let
                       val i = hash k
                       val bucket = Array.sub (ht, i)
-                      val newBucket = ((k, v)::(!bucket))
+                      val newBucket = (k, v)::bucket
                     in
-                      Array.update (ht, i, ref newBucket)
+                      Array.update (ht, i, newBucket)
                     end)
 
 end
