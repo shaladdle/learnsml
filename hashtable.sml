@@ -5,38 +5,52 @@ sig
   val equal : t -> t -> bool
 end
 
-structure IntHashKey =
+structure IntKey =
 struct
   type t = int
   fun hash x = x
   fun equal x y = case Int.compare (x, y) of EQUAL => true | _ => false
 end
 
-signature HASH_TABLE =
-sig
-  structure Key : HASH_KEY
-  type 'a hashTable
-  val new : unit -> 'a hashTable
-  val put : 'a hashTable -> Key.t -> 'a -> unit
-  val get : 'a hashTable -> Key.t -> 'a option
-  val del : 'a hashTable -> Key.t -> unit
+structure NaiveStringKey =
+struct
+  type t = string
+
+  (* This helper is fairly unrelated to the structure *)
+  local
+    fun sum il = List.foldl (fn (x, y) => x + y) 0 il
+  in
+    fun hash s = sum ((map ord) (String.explode s))
+  end
+
+  fun equal x y = case String.compare (x, y) of EQUAL => true | _ => false
 end
 
-functor HashTable(K : HASH_KEY) :> HASH_TABLE where type Key.t = K.t =
+signature HASH_TABLE =
+sig
+  type key
+  type 'a hashTable
+  val new : unit -> 'a hashTable
+  val put : 'a hashTable -> key -> 'a -> unit
+  val get : 'a hashTable -> key -> 'a option
+  val del : 'a hashTable -> key -> unit
+end
+
+functor HashTable(K : HASH_KEY) :> HASH_TABLE where type key = K.t =
 struct
-  structure Key : HASH_KEY = K
-  type 'a kvPair = Key.t * 'a
+  type key = K.t
+  type 'a kvPair = K.t * 'a
   type 'a bucket = 'a kvPair list
 
   type 'a hashTable = 'a bucket ref Array.array
 
   val size = 173
-  fun hash k = (Key.hash k) mod size
+  fun hash k = (K.hash k) mod size
 
   fun new () = Array.array (size, ref [])
 
   fun searchBucket [] _ = NONE
-    | searchBucket ((k', v')::rest) k = if Key.equal k k'
+    | searchBucket ((k', v')::rest) k = if K.equal k k'
                                         then SOME (k', v')
                                         else searchBucket rest k
 
@@ -51,7 +65,7 @@ struct
   fun del ht k = let 
         val i = hash k
         val bucket = Array.sub (ht, i)
-        val without = List.filter (fn (k', _) => not (Key.equal k k')) (!bucket)
+        val without = List.filter (fn (k', _) => not (K.equal k k')) (!bucket)
       in
         Array.update (ht, i, ref without)
       end
